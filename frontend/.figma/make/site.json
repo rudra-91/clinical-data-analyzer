@@ -1,0 +1,10 @@
+{
+  "description": "Effortlessly analyze clinical laboratory reports with AI-generated summaries, highlighting abnormal findings and providing clear medical explanations for users.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
