@@ -38,7 +38,7 @@ async def analyze(file: UploadFile = File(...)):
         content += chunk
         if len(content) > MAX_FILE_SIZE:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail="File too large. Maximum size is 10 MB.",
             )
 
