@@ -2,7 +2,7 @@ import logging
 import os
 import tempfile
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Body, File, HTTPException, UploadFile, status
 
 from ai import analyze_report
 from ai.pdf_parser import extract_text_from_pdf
@@ -11,8 +11,8 @@ router = APIRouter()
 
 logger = logging.getLogger(__name__)
 
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
-ALLOWED_EXTENSIONS = {".txt", ".pdf"}
+MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB
+ALLOWED_EXTENSIONS = {".txt", ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".webp"}
 
 
 @router.post("/analyze")
@@ -71,6 +71,44 @@ async def analyze(file: UploadFile = File(...)):
 
     try:
         result = analyze_report(report_text)
+    except ValueError as exc:
+        logger.error("AI analysis rejected input: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+    except FileNotFoundError as exc:
+        logger.error("Required AI resource not found: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI service is not fully configured. Run build_rag.py first.",
+        )
+    except Exception:
+        logger.exception("Unexpected error during AI analysis")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An internal error occurred during analysis",
+        )
+
+    return result
+
+
+@router.post("/analyze-text")
+async def analyze_text(text: str = Body(..., embed=True)):
+    if not text:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No text provided",
+        )
+
+    if not text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Empty text provided",
+        )
+
+    try:
+        result = analyze_report(text)
     except ValueError as exc:
         logger.error("AI analysis rejected input: %s", exc)
         raise HTTPException(

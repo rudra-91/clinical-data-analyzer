@@ -8,7 +8,7 @@ const features = [
   {
     icon: '📄',
     title: 'Upload Clinical Reports',
-    desc: 'Supports standard PDF laboratory reports from major diagnostic providers.',
+    desc: 'Supports PDF, DOCX, TXT, and medical image scans — we extract text automatically.',
     accent: 'bg-blue-50',
   },
   {
@@ -32,7 +32,7 @@ const features = [
 ]
 
 const steps = [
-  { n: '01', title: 'Upload Report', desc: 'Select your PDF laboratory report' },
+  { n: '01', title: 'Upload Report', desc: 'Select a PDF, DOCX, TXT, or image file' },
   { n: '02', title: 'Extract Values', desc: 'AI reads and parses lab measurements' },
   { n: '03', title: 'AI + RAG Analysis', desc: 'Cross-references medical guidelines' },
   { n: '04', title: 'Summary Generated', desc: 'Receive your clinical overview' },
@@ -138,7 +138,7 @@ export default function LandingPage({ navigate }: Props) {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-24 bg-[#f8fafc]">
+      <section id="features" className="py-24 bg-[#f8fafc] scroll-mt-20">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-14">
             <p className="text-[#1a6fd4] text-sm font-semibold uppercase tracking-widest mb-3">Capabilities</p>
@@ -169,8 +169,8 @@ export default function LandingPage({ navigate }: Props) {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="py-24 bg-white">
+      {/* About / How it works */}
+      <section id="about" className="py-24 bg-white scroll-mt-20">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-14">
             <p className="text-[#1a6fd4] text-sm font-semibold uppercase tracking-widest mb-3">Workflow</p>

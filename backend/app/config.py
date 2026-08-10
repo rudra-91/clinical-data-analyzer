@@ -19,4 +19,4 @@ PROJECT_DESCRIPTION: str = os.getenv(
 PROJECT_VERSION: str = os.getenv("PROJECT_VERSION", "0.1.0")
 ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 API_V1_STR: str = os.getenv("API_V1_STR", "/api/v1")
-FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:8443")

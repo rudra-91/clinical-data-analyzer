@@ -5,6 +5,14 @@ interface Props {
   navigate: (p: Page) => void
 }
 
+const NAVBAR_HEIGHT = 64
+const scrollToSection = (id: string) => {
+  const el = document.getElementById(id)
+  if (!el) return
+  const y = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT
+  window.scrollTo({ top: y, behavior: 'smooth' })
+}
+
 export default function NavBar({ currentPage, navigate }: Props) {
   const navLink = (label: string, target: Page | 'home') => {
     const dest: Page = target === 'home' ? 'landing' : (target as Page)
@@ -21,10 +29,23 @@ export default function NavBar({ currentPage, navigate }: Props) {
     )
   }
 
+  const handleSectionClick = (section: 'about' | 'features') => {
+    if (currentPage !== 'landing') {
+      navigate('landing')
+      setTimeout(() => scrollToSection(section), 150)
+    } else {
+      scrollToSection(section)
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200">
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <button
+      <nav
+        className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between"
+        aria-label="Main navigation"
+      >
+        <a
+          href="#home"
           onClick={() => navigate('landing')}
           className="flex items-center gap-2.5 group"
         >
@@ -35,17 +56,23 @@ export default function NavBar({ currentPage, navigate }: Props) {
             Clinical Data<br />
             <span className="text-[#1a6fd4] text-xs font-medium tracking-wide uppercase">Analyzer AI</span>
           </span>
-        </button>
+        </a>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-8">
           {navLink('Home', 'home')}
-          <button className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors duration-150">
+          <button
+            onClick={() => handleSectionClick('about')}
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors duration-150"
+          >
             About
           </button>
-          <button className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors duration-150">
+          <button
+            onClick={() => handleSectionClick('features')}
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors duration-150"
+          >
             Features
           </button>
-        </nav>
+        </div>
 
         <button
           onClick={() => navigate('upload')}
@@ -53,7 +80,7 @@ export default function NavBar({ currentPage, navigate }: Props) {
         >
           Analyze Report
         </button>
-      </div>
+      </nav>
     </header>
   )
 }

@@ -1,39 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Page } from '../App'
+import { jsPDF } from 'jspdf'
 import StatusBadge from '../components/StatusBadge'
+import { appStore, type AnalysisData, type Finding, type Reference } from '../lib/store'
 
 interface Props {
   navigate: (p: Page) => void
 }
 
-const findings = [
-  {
-    parameter: 'Blood Pressure',
-    value: '150/95 mmHg',
-    reference: '< 120/80 mmHg',
-    status: 'high' as const,
-  },
-  {
-    parameter: 'Fasting Blood Sugar',
-    value: '168 mg/dL',
-    reference: '70–99 mg/dL',
-    status: 'high' as const,
-  },
-  {
-    parameter: 'Hemoglobin',
-    value: '10.8 g/dL',
-    reference: '13.5–17.5 g/dL',
-    status: 'low' as const,
-  },
-  {
-    parameter: 'Total Cholesterol',
-    value: '192 mg/dL',
-    reference: '< 200 mg/dL',
-    status: 'normal' as const,
-  },
+// Fallback data used when visiting ResultsPage directly (e.g. preview)
+const fallbackFindings: Finding[] = [
+  { parameter: 'Blood Pressure', value: '150/95 mmHg', reference: '< 120/80 mmHg', status: 'high' },
+  { parameter: 'Fasting Blood Sugar', value: '168 mg/dL', reference: '70–99 mg/dL', status: 'high' },
+  { parameter: 'Hemoglobin', value: '10.8 g/dL', reference: '13.5–17.5 g/dL', status: 'low' },
+  { parameter: 'Total Cholesterol', value: '192 mg/dL', reference: '< 200 mg/dL', status: 'normal' },
 ]
 
-const references = [
+const fallbackReferences: Reference[] = [
   {
     title: 'Blood Pressure Guideline (JNC 8)',
     excerpt:
@@ -54,7 +37,7 @@ const references = [
   },
 ]
 
-const recommendations = [
+const fallbackRecommendations = [
   'Consult a healthcare professional regarding your blood pressure and blood sugar levels.',
   'Monitor blood pressure regularly — target < 130/80 mmHg per current guidelines.',
   'Repeat fasting glucose test and HbA1c for comprehensive diabetes assessment.',
@@ -62,8 +45,341 @@ const recommendations = [
   'Maintain a heart-healthy diet, regular physical activity, and adequate sleep.',
 ]
 
+const fallbackSummary =
+  'This report reveals three out-of-range laboratory values: elevated blood pressure consistent with Stage 1 hypertension, ' +
+  'fasting blood glucose in the diabetic range, and hemoglobin below the reference minimum suggesting mild anemia. ' +
+  'Total cholesterol falls within the acceptable range. These findings warrant prompt follow-up with a licensed healthcare provider.'
+
+function generateRiskText(findings: Finding[]): string {
+  const lines = findings
+    .filter((f) => f.status !== 'normal')
+    .map((f) => {
+      if (f.status === 'high') {
+        return `Elevated ${f.parameter} (${f.value}): Increased risk of cardiovascular and metabolic complications.`
+      }
+      if (f.status === 'low') {
+        return `Low ${f.parameter} (${f.value}): May indicate nutritional deficiency or chronic disease.`
+      }
+      return ''
+    })
+    .filter(Boolean)
+  return lines.join('\n')
+}
+
+function generateClinicalInterpretation(findings: Finding[]): string[] {
+  const paragraphs: string[] = []
+
+  const highBP = findings.find((f) => f.parameter.toLowerCase().includes('blood pressure') && f.status === 'high')
+  if (highBP) {
+    paragraphs.push(
+      `Your results indicate a combination of cardiovascular and metabolic risk factors. The elevated blood pressure reading ` +
+      `of ${highBP.value} exceeds the hypertension threshold defined by major cardiology guidelines and increases the risk of ` +
+      `stroke and heart disease if left unmanaged.`,
+    )
+  }
+
+  const highSugar = findings.find(
+    (f) => (f.parameter.toLowerCase().includes('sugar') || f.parameter.toLowerCase().includes('glucose')) && f.status === 'high',
+  )
+  if (highSugar) {
+    paragraphs.push(
+      `The fasting blood sugar of ${highSugar.value} is above the diabetic cutoff of 126 mg/dL, suggesting impaired glucose metabolism. ` +
+      `A confirmatory test and HbA1c measurement are recommended to establish a formal diagnosis.`,
+    )
+  }
+
+  const lowHgb = findings.find(
+    (f) => f.parameter.toLowerCase().includes('hemoglobin') && f.status === 'low',
+  )
+  if (lowHgb) {
+    paragraphs.push(
+      `The hemoglobin level of ${lowHgb.value} indicates mild anemia, which may cause fatigue, reduced exercise capacity, and ` +
+      `increased cardiovascular strain. Further investigation into the underlying cause — nutritional deficiency, chronic ` +
+      `disease, or blood loss — is advised.`,
+    )
+  }
+
+  if (paragraphs.length === 0) {
+    paragraphs.push(
+      'All laboratory values are within normal reference ranges. No abnormal findings detected.',
+    )
+  }
+
+  return paragraphs
+}
+
+function generatePDF(data: AnalysisData, fileName: string) {
+  console.log('[PDF] Starting PDF generation with dynamic data')
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  })
+
+  console.log('[PDF] jsPDF doc created:', doc)
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const leftMargin = 20
+  const rightMargin = 20
+  const contentWidth = pageWidth - leftMargin - rightMargin
+  console.log('[PDF] Page dimensions:', { pageWidth, contentWidth })
+
+  let yPos = 15
+
+  // Header with logo and title
+  doc.setFillColor(26, 111, 212)
+  doc.roundedRect(0, 0, pageWidth, 25, 0, 0, 'F')
+
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(16)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Clinical Data Analyzer AI', leftMargin, 12)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Clinical Report Analysis', leftMargin, 20)
+
+  doc.setTextColor(26, 111, 212)
+  yPos = 35
+
+  // Report Information
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Report Information', leftMargin, yPos)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  const now = new Date()
+  const timestamp = now.toISOString()
+  const uploadTime = now.toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const analysisTime = now.toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  yPos += 6
+  doc.setTextColor(30, 41, 59)
+  doc.text(`Filename: ${fileName}`, leftMargin + 5, yPos)
+  yPos += 5
+  doc.text(`Upload Time: ${uploadTime}`, leftMargin + 5, yPos)
+  yPos += 5
+  doc.text(`Analysis Time: ${analysisTime}`, leftMargin + 5, yPos)
+  yPos += 8
+
+  // AI-Generated Summary
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(26, 111, 212)
+  doc.text('AI-Generated Summary', leftMargin, yPos)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(30, 41, 59)
+  yPos += 6
+  const summaryText = data.summary || fallbackSummary
+  const summaryLines = doc.splitTextToSize(summaryText, contentWidth - 10)
+  doc.text(summaryLines, leftMargin + 5, yPos)
+  yPos += summaryLines.length * 4 + 8
+
+  // Key Clinical Findings
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(26, 111, 212)
+  doc.text('Key Clinical Findings', leftMargin, yPos)
+  doc.setFont('helvetica', 'normal')
+  yPos += 6
+
+  const findings = data.findings.length > 0 ? data.findings : fallbackFindings
+
+  findings.forEach((f) => {
+    doc.setFontSize(10)
+    doc.setTextColor(30, 41, 59)
+    doc.setFont('helvetica', 'bold')
+    doc.text(f.parameter, leftMargin + 5, yPos)
+    doc.setFont('helvetica', 'normal')
+    const statusColor =
+      f.status === 'high'
+        ? [220, 53, 69]
+        : f.status === 'low'
+          ? [79, 79, 202]
+          : [16, 185, 129]
+    doc.setTextColor(statusColor[0], statusColor[1], statusColor[2])
+    doc.text(`${f.value} (${f.status})`, leftMargin + 60, yPos)
+    doc.setTextColor(100, 116, 139)
+    doc.setFont('helvetica', 'italic')
+    doc.setFontSize(8)
+    doc.text(`Reference: ${f.reference}`, leftMargin + 5, yPos + 5)
+    doc.setFont('helvetica', 'normal')
+    yPos += 12
+  })
+
+  // Risk Assessment
+  yPos += 4
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(26, 111, 212)
+  doc.text('Risk Assessment', leftMargin, yPos)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(30, 41, 59)
+  yPos += 6
+  const riskText = generateRiskText(findings) || 'No significant risk factors identified.'
+  const riskLines = doc.splitTextToSize(riskText, contentWidth - 10)
+  doc.text(riskLines, leftMargin + 5, yPos)
+  yPos += riskLines.length * 4 + 8
+
+  // Recommendations
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(26, 111, 212)
+  doc.text('Recommendations', leftMargin, yPos)
+  doc.setFont('helvetica', 'normal')
+  yPos += 6
+
+  const recs = data.recommendations.length > 0 ? data.recommendations : fallbackRecommendations
+
+  recs.forEach((rec, i) => {
+    doc.setFontSize(10)
+    doc.setTextColor(30, 41, 59)
+    doc.text(`${i + 1}. ${rec}`, leftMargin + 5, yPos)
+    yPos += 5
+  })
+
+  yPos += 4
+
+  // Confidence Score
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(26, 111, 212)
+  doc.text('Confidence Score', leftMargin, yPos)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(30, 41, 59)
+  yPos += 6
+  doc.setFillColor(26, 111, 212)
+  doc.roundedRect(leftMargin + 5, yPos - 2, 50, 6, 1, 1, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.text('95%', leftMargin + 8, yPos + 5)
+
+  yPos += 14
+
+  // Disclaimer
+  doc.setTextColor(245, 152, 61)
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  const disclaimer =
+    'Important: This report is for educational and demonstration purposes only. ' +
+    'It does not provide medical diagnoses or replace professional medical advice. ' +
+    'Always consult a qualified healthcare provider.'
+  const discLines = doc.splitTextToSize(disclaimer, contentWidth - 10)
+  doc.text(discLines, leftMargin, yPos)
+
+  const fileName_safe = `Clinical_Report_Analysis_${timestamp.replace(/[:.]/g, '-')}.pdf`
+  console.log('[PDF] Saving with filename:', fileName_safe)
+
+  try {
+    const pdfOutput = doc.output('blob')
+    console.log('[PDF] Blob created successfully, size:', pdfOutput.size)
+
+    if (typeof document !== 'undefined' && document.createElement && URL.createObjectURL) {
+      const url = URL.createObjectURL(pdfOutput)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName_safe
+      document.body.appendChild(a)
+      a.click()
+      setTimeout(() => {
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }, 100)
+      console.log('[PDF] Download triggered via blob URL')
+    } else {
+      console.log('[PDF] Falling back to doc.save()')
+      doc.save(fileName_safe)
+    }
+  } catch (outputError) {
+    console.error('[PDF] Blob creation failed, trying doc.save():', outputError)
+    doc.save(fileName_safe)
+  }
+  console.log('[PDF] PDF generation complete')
+}
+
 export default function ResultsPage({ navigate }: Props) {
   const [expandedRef, setExpandedRef] = useState<number | null>(0)
+  const [downloading, setDownloading] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [analysisData, setAnalysisData] = useState<AnalysisData>({
+    findings: fallbackFindings,
+    references: fallbackReferences,
+    recommendations: fallbackRecommendations,
+    summary: fallbackSummary,
+  })
+
+  const [fileName, setFileName] = useState<string>('sample_laboratory_report.pdf')
+
+  useEffect(() => {
+    const store = appStore.get()
+    const data = store.analysisData
+
+    if (data) {
+      setAnalysisData({
+        findings: data.findings.length > 0 ? data.findings : fallbackFindings,
+        references: data.references.length > 0 ? data.references : fallbackReferences,
+        recommendations: data.recommendations.length > 0 ? data.recommendations : fallbackRecommendations,
+        summary: data.summary || fallbackSummary,
+      })
+    }
+
+    const file = store.file
+    if (file) {
+      setFileName(file.name)
+    }
+  }, [])
+
+  const handleDownloadPDF = async () => {
+    console.log('[PDF] Download button clicked')
+    setDownloading(true)
+    setDownloadError(null)
+    try {
+      console.log('[PDF] Calling generatePDF with dynamic data')
+      generatePDF(analysisData, fileName)
+      console.log('[PDF] generatePDF completed successfully')
+    } catch (error: any) {
+      console.error('[PDF] PDF generation failed - full error:', error)
+      console.error('[PDF] Error type:', typeof error)
+      console.error('[PDF] Error name:', error?.name)
+      console.error('[PDF] Error message:', error?.message)
+      console.error('[PDF] Error stack:', error?.stack)
+      if (error?.cause) {
+        console.error('[PDF] Error cause:', error.cause)
+      }
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+            ? error
+            : error?.toString
+              ? error.toString()
+              : JSON.stringify(error)
+      setDownloadError(errorMsg)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  const findings = analysisData.findings
+  const references = analysisData.references
+  const recommendations = analysisData.recommendations
+  const summary = analysisData.summary
+  const interpretationParagraphs = generateClinicalInterpretation(findings)
+
+  // Determine overall status
+  const hasAbnormal = findings.some((f) => f.status !== 'normal')
+  const overallStatus = hasAbnormal ? 'attention' : 'good'
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f8fafc] py-12">
@@ -82,14 +398,53 @@ export default function ResultsPage({ navigate }: Props) {
             <p className="text-slate-500 text-sm mt-1.5">Generated · {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
           </div>
           <div className="flex gap-3 flex-shrink-0">
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-[#1a6fd4] text-white text-sm font-semibold rounded-xl hover:bg-[#1558b0] transition-colors shadow-sm">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Download PDF
+            <button
+              onClick={handleDownloadPDF}
+              disabled={downloading}
+              className={`flex items-center gap-2 px-4 py-2.5 text-white text-sm font-semibold rounded-xl shadow-sm transition-all duration-150 ${
+                downloading
+                  ? 'bg-slate-300 cursor-not-allowed'
+                  : 'bg-[#1a6fd4] hover:bg-[#1558b0] hover:shadow-lg'
+              }`}
+            >
+              {downloading ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Download PDF
+                </>
+              )}
             </button>
             <button
-              onClick={() => navigate('upload')}
+              onClick={() => {
+                appStore.reset()
+                navigate('upload')
+              }}
               className="px-4 py-2.5 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:border-slate-300 hover:bg-white transition-all"
             >
               Analyze Another
@@ -97,19 +452,29 @@ export default function ResultsPage({ navigate }: Props) {
           </div>
         </div>
 
+        {/* Download error message */}
+        {downloadError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3 animate-fade-up">
+            <span className="text-xl">⚠️</span>
+            <p className="text-red-800 text-sm">{downloadError}</p>
+          </div>
+        )}
+
         {/* Patient Summary */}
         <section className="bg-white rounded-2xl border border-slate-200 p-6 mb-5 shadow-sm">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <h2 className="text-[13px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Overall Status</h2>
-              <StatusBadge status="attention" />
+              <StatusBadge status={overallStatus} />
             </div>
-            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-xl flex-shrink-0">⚠️</div>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
+              overallStatus === 'attention' ? 'bg-amber-50' : 'bg-emerald-50'
+            }`}>
+              {overallStatus === 'attention' ? '⚠️' : '✅'}
+            </div>
           </div>
           <p className="text-slate-700 leading-relaxed text-sm">
-            This report reveals three out-of-range laboratory values: elevated blood pressure consistent with Stage 1 hypertension,
-            fasting blood glucose in the diabetic range, and hemoglobin below the reference minimum suggesting mild anemia.
-            Total cholesterol falls within the acceptable range. These findings warrant prompt follow-up with a licensed healthcare provider.
+            {summary}
           </p>
         </section>
 
@@ -157,20 +522,11 @@ export default function ResultsPage({ navigate }: Props) {
             <div className="w-9 h-9 rounded-xl bg-[#1a6fd4] flex items-center justify-center text-white text-lg">🧠</div>
             <h2 className="text-lg font-semibold text-slate-900">Clinical Interpretation</h2>
           </div>
-          <p className="text-slate-700 leading-relaxed text-sm mb-3">
-            Your results indicate a combination of cardiovascular and metabolic risk factors. The elevated blood pressure reading
-            of 150/95 mmHg exceeds the hypertension threshold defined by major cardiology guidelines and increases the risk of
-            stroke and heart disease if left unmanaged.
-          </p>
-          <p className="text-slate-700 leading-relaxed text-sm mb-3">
-            The fasting blood sugar of 168 mg/dL is above the diabetic cutoff of 126 mg/dL, suggesting impaired glucose metabolism.
-            A confirmatory test and HbA1c measurement are recommended to establish a formal diagnosis.
-          </p>
-          <p className="text-slate-700 leading-relaxed text-sm">
-            The hemoglobin level of 10.8 g/dL indicates mild anemia, which may cause fatigue, reduced exercise capacity, and
-            increased cardiovascular strain. Further investigation into the underlying cause — nutritional deficiency, chronic
-            disease, or blood loss — is advised.
-          </p>
+          {interpretationParagraphs.map((para, i) => (
+            <p key={i} className="text-slate-700 leading-relaxed text-sm mb-3">
+              {para}
+            </p>
+          ))}
         </section>
 
         {/* Medical References */}

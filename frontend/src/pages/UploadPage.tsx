@@ -1,5 +1,7 @@
 import { useState, useRef, type DragEvent, type ChangeEvent } from 'react'
 import type { Page } from '../App'
+import { validateFile, ACCEPT_ATTRIBUTE, SUPPORTED_FILE_TYPES } from '../lib/fileType'
+import { appStore } from '../lib/store'
 
 interface Props {
   navigate: (p: Page) => void
@@ -7,24 +9,43 @@ interface Props {
 
 export default function UploadPage({ navigate }: Props) {
   const [dragging, setDragging] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
+  const [currentFile, setCurrentFile] = useState<File | null>(() => appStore.get().file)
+  const [validationError, setValidationError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = (selectedFile: File | null) => {
+    setValidationError(null)
+    if (!selectedFile) return
+
+    const result = validateFile(selectedFile)
+    if (!result.valid) {
+      setValidationError(result.error)
+      setCurrentFile(null)
+      appStore.set({ file: null, extractedText: null, analysisData: null, processingError: null })
+      return
+    }
+
+    setCurrentFile(selectedFile)
+    appStore.set({ file: selectedFile, extractedText: null, analysisData: null, processingError: null, uploadProgress: 0 })
+    console.log('[UPLOAD] File validated:', selectedFile.name, 'type:', result.type)
+  }
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setDragging(false)
     const dropped = e.dataTransfer.files[0]
-    if (dropped?.type === 'application/pdf') setFile(dropped)
+    if (dropped) handleFileSelect(dropped)
   }
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
-    if (f) setFile(f)
+    if (f) handleFileSelect(f)
   }
 
   const handleAnalyze = () => {
-    if (file) navigate('processing')
+    if (currentFile) navigate('processing')
   }
+  const fileType = currentFile ? currentFile.name.substring(currentFile.name.lastIndexOf('.')).toUpperCase() : null
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 py-16">
@@ -44,12 +65,25 @@ export default function UploadPage({ navigate }: Props) {
           <div className="mb-8">
             <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-2xl mb-4">📋</div>
             <h1 className="text-2xl font-semibold text-slate-900 mb-1.5">Upload Clinical Report</h1>
-            <p className="text-slate-500 text-sm">Upload a PDF laboratory report for AI-powered analysis.</p>
+            <p className="text-slate-500 text-sm">
+              Upload a clinical report in any format &mdash; PDF, DOCX, TXT, or a medical image scan. We automatically extract the text for you.
+            </p>
           </div>
+
+          {/* Validation error */}
+          {validationError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center gap-3">
+              <span className="text-xl">⚠️</span>
+              <p className="text-red-800 text-sm">{validationError}</p>
+            </div>
+          )}
 
           {/* Drop zone */}
           <div
-            onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setDragging(true)
+            }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             className={`
@@ -57,7 +91,7 @@ export default function UploadPage({ navigate }: Props) {
               flex flex-col items-center justify-center py-12 px-6 text-center mb-6
               ${dragging
                 ? 'border-[#1a6fd4] bg-blue-50 scale-[1.01]'
-                : file
+                : currentFile
                   ? 'border-emerald-400 bg-emerald-50'
                   : 'border-slate-200 bg-slate-50 hover:border-[#1a6fd4] hover:bg-blue-50'
               }
@@ -67,18 +101,20 @@ export default function UploadPage({ navigate }: Props) {
             <input
               ref={inputRef}
               type="file"
-              accept="application/pdf"
+              accept={ACCEPT_ATTRIBUTE}
               className="sr-only"
               onChange={handleChange}
             />
 
-            {file ? (
+            {currentFile ? (
               <>
                 <div className="w-14 h-14 rounded-xl bg-emerald-100 flex items-center justify-center text-3xl mb-3">
-                  📄
+                  {currentFile.type.startsWith('image/') ? '🖼️' : '📄'}
                 </div>
-                <p className="font-semibold text-emerald-700 text-sm mb-1 break-all max-w-xs">{file.name}</p>
-                <p className="text-emerald-600 text-xs">{(file.size / 1024).toFixed(1)} KB · PDF</p>
+                <p className="font-semibold text-emerald-700 text-sm mb-1 break-all max-w-xs">{currentFile.name}</p>
+                <p className="text-emerald-600 text-xs">
+                  {(currentFile.size / 1024).toFixed(1)} KB · {fileType}
+                </p>
                 <p className="text-xs text-slate-400 mt-3">Click to replace file</p>
               </>
             ) : (
@@ -90,12 +126,11 @@ export default function UploadPage({ navigate }: Props) {
                   Drag &amp; drop your report here
                 </p>
                 <p className="text-slate-400 text-xs mb-3">or click to browse files</p>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-200 text-slate-500 text-xs font-medium">
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-                    <rect x="1" y="1" width="8" height="8" rx="1" />
-                  </svg>
-                  PDF only
-                </span>
+                <div className="inline-flex flex-wrap items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-200 text-slate-500 text-xs font-medium">
+                  {SUPPORTED_FILE_TYPES.map((ft, i) => (
+                    <span key={ft.ext}>{ft.label}</span>
+                  ))}
+                </div>
               </>
             )}
           </div>
@@ -103,10 +138,10 @@ export default function UploadPage({ navigate }: Props) {
           <div className="flex gap-3">
             <button
               onClick={handleAnalyze}
-              disabled={!file}
+              disabled={!currentFile}
               className={`
                 flex-1 py-3 rounded-xl font-semibold text-sm transition-all duration-150
-                ${file
+                ${currentFile
                   ? 'bg-[#1a6fd4] text-white hover:bg-[#1558b0] shadow-md hover:shadow-lg'
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }
@@ -122,9 +157,10 @@ export default function UploadPage({ navigate }: Props) {
             </button>
           </div>
 
-          <p className="text-center text-xs text-slate-400 mt-5">
-            Your file is processed securely and not stored permanently.
-          </p>
+          <div className="mt-4 text-xs text-slate-400 text-center">
+            <p>Supported: PDF · DOCX · TXT · JPG/PNG/WebP · Max 25 MB</p>
+            <p>Your file is processed securely and not stored permanently.</p>
+          </div>
         </div>
       </div>
     </div>
