@@ -3,6 +3,7 @@ import type { Page } from '../App'
 import { jsPDF } from 'jspdf'
 import StatusBadge from '../components/StatusBadge'
 import { appStore, type AnalysisData, type Finding, type Reference } from '../lib/store'
+import { STATUS_TEXT } from '../lib/dataMapper'
 
 interface Props {
   navigate: (p: Page) => void
@@ -54,55 +55,95 @@ function generateRiskText(findings: Finding[]): string {
   const lines = findings
     .filter((f) => f.status !== 'normal')
     .map((f) => {
+      const meaning = STATUS_TEXT[f.status] || 'is abnormal'
       if (f.status === 'high') {
-        return `Elevated ${f.parameter} (${f.value}): Increased risk of cardiovascular and metabolic complications.`
+        return `Elevated ${f.parameter} (${f.value}): ${meaning}.`
       }
       if (f.status === 'low') {
-        return `Low ${f.parameter} (${f.value}): May indicate nutritional deficiency or chronic disease.`
+        return `Low ${f.parameter} (${f.value}): ${meaning}.`
       }
-      return ''
+      if (f.status === 'near_optimal') {
+        return `${f.parameter} (${f.value}): ${meaning}.`
+      }
+      return `Abnormal ${f.parameter} (${f.value}): ${meaning}.`
     })
     .filter(Boolean)
   return lines.join('\n')
 }
 
+type OverallStatusType = 'good' | 'mild_attention' | 'attention'
+
+interface OverallStatusResult {
+  status: OverallStatusType
+  message: string
+}
+
+function generateOverallStatus(findings: Finding[]): OverallStatusResult {
+  const abnormal = findings.filter((f) => f.status !== 'normal')
+
+  if (abnormal.length === 0) {
+    return {
+      status: 'good',
+      message: 'All measured laboratory parameters are within normal reference ranges.',
+    }
+  }
+
+  if (abnormal.length === 1 && abnormal[0].status === 'near_optimal') {
+    const f = abnormal[0]
+    return {
+      status: 'mild_attention',
+      message: `Most laboratory parameters are within normal limits. ${f.parameter} ${STATUS_TEXT[f.status]}. Lifestyle modifications such as regular exercise and a heart-healthy diet may help improve ${f.parameter.toLowerCase()} levels.`,
+    }
+  }
+
+  if (abnormal.length === 1) {
+    const f = abnormal[0]
+    return {
+      status: 'attention',
+      message: `Attention is needed for ${f.parameter} ${STATUS_TEXT[f.status]} (${f.value}). Please consult a healthcare professional for further evaluation.`,
+    }
+  }
+
+  const abnormalNames = abnormal.map((f) => f.parameter).join(', ')
+  return {
+    status: 'attention',
+    message: `${abnormal.length} parameters require attention: ${abnormalNames}. Please consult a healthcare professional for further evaluation.`,
+  }
+}
+
 function generateClinicalInterpretation(findings: Finding[]): string[] {
   const paragraphs: string[] = []
+  const abnormal = findings.filter((f) => f.status !== 'normal')
 
-  const highBP = findings.find((f) => f.parameter.toLowerCase().includes('blood pressure') && f.status === 'high')
-  if (highBP) {
+  if (abnormal.length === 0) {
     paragraphs.push(
-      `Your results indicate a combination of cardiovascular and metabolic risk factors. The elevated blood pressure reading ` +
-      `of ${highBP.value} exceeds the hypertension threshold defined by major cardiology guidelines and increases the risk of ` +
-      `stroke and heart disease if left unmanaged.`,
+      'All laboratory values are within normal reference ranges. No clinically significant abnormalities detected.',
     )
+    return paragraphs
   }
 
-  const highSugar = findings.find(
-    (f) => (f.parameter.toLowerCase().includes('sugar') || f.parameter.toLowerCase().includes('glucose')) && f.status === 'high',
-  )
-  if (highSugar) {
+  if (abnormal.length === 1 && abnormal[0].status === 'near_optimal') {
+    const f = abnormal[0]
     paragraphs.push(
-      `The fasting blood sugar of ${highSugar.value} is above the diabetic cutoff of 126 mg/dL, suggesting impaired glucose metabolism. ` +
-      `A confirmatory test and HbA1c measurement are recommended to establish a formal diagnosis.`,
+      `Most laboratory values are within normal limits. ${f.parameter} ${STATUS_TEXT[f.status]}. ` +
+        `Lifestyle modifications such as regular exercise and a heart-healthy diet may help improve ${f.parameter.toLowerCase()} levels.`,
     )
+    return paragraphs
   }
 
-  const lowHgb = findings.find(
-    (f) => f.parameter.toLowerCase().includes('hemoglobin') && f.status === 'low',
-  )
-  if (lowHgb) {
-    paragraphs.push(
-      `The hemoglobin level of ${lowHgb.value} indicates mild anemia, which may cause fatigue, reduced exercise capacity, and ` +
-      `increased cardiovascular strain. Further investigation into the underlying cause — nutritional deficiency, chronic ` +
-      `disease, or blood loss — is advised.`,
-    )
+  const parts: string[] = []
+  for (const f of abnormal) {
+    const meaning = STATUS_TEXT[f.status] || 'is abnormal'
+    parts.push(`${f.parameter} ${meaning} (${f.value}).`)
   }
 
-  if (paragraphs.length === 0) {
+  if (abnormal.length > 1) {
+    const summary = abnormal.map((f) => f.parameter.toLowerCase()).join(', ')
     paragraphs.push(
-      'All laboratory values are within normal reference ranges. No abnormal findings detected.',
+      `Multiple abnormalities detected involving: ${summary}. ${parts.join(' ')} These findings warrant further clinical evaluation.`,
     )
+  } else {
+    paragraphs.push(parts.join(' ') + ' These findings warrant further clinical evaluation.')
   }
 
   return paragraphs
@@ -180,7 +221,9 @@ function generatePDF(data: AnalysisData, fileName: string) {
   doc.setFontSize(10)
   doc.setTextColor(30, 41, 59)
   yPos += 6
-  const summaryText = data.summary || fallbackSummary
+  const findings = data.findings.length > 0 ? data.findings : fallbackFindings
+  const overallStatusMsg = generateOverallStatus(findings).message
+  const summaryText = overallStatusMsg || data.summary || fallbackSummary
   const summaryLines = doc.splitTextToSize(summaryText, contentWidth - 10)
   doc.text(summaryLines, leftMargin + 5, yPos)
   yPos += summaryLines.length * 4 + 8
@@ -192,8 +235,6 @@ function generatePDF(data: AnalysisData, fileName: string) {
   doc.text('Key Clinical Findings', leftMargin, yPos)
   doc.setFont('helvetica', 'normal')
   yPos += 6
-
-  const findings = data.findings.length > 0 ? data.findings : fallbackFindings
 
   findings.forEach((f) => {
     doc.setFontSize(10)
@@ -375,11 +416,11 @@ export default function ResultsPage({ navigate }: Props) {
   const references = analysisData.references
   const recommendations = analysisData.recommendations
   const summary = analysisData.summary
+  const overallStatusResult = generateOverallStatus(findings)
+  const overallStatus = overallStatusResult.status
+  const overallStatusMessage = overallStatusResult.message
   const interpretationParagraphs = generateClinicalInterpretation(findings)
 
-  // Determine overall status
-  const hasAbnormal = findings.some((f) => f.status !== 'normal')
-  const overallStatus = hasAbnormal ? 'attention' : 'good'
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f8fafc] py-12">
@@ -468,19 +509,19 @@ export default function ResultsPage({ navigate }: Props) {
               <StatusBadge status={overallStatus} />
             </div>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
-              overallStatus === 'attention' ? 'bg-amber-50' : 'bg-emerald-50'
+              overallStatus === 'attention' || overallStatus === 'mild_attention' ? 'bg-amber-50' : 'bg-emerald-50'
             }`}>
-              {overallStatus === 'attention' ? '⚠️' : '✅'}
+              {overallStatus === 'good' ? '✅' : '⚠️'}
             </div>
           </div>
           <p className="text-slate-700 leading-relaxed text-sm">
-            {summary}
+            {overallStatusMessage}
           </p>
         </section>
 
-        {/* Abnormal Findings */}
+        {/* Findings / Laboratory Results */}
         <section className="mb-5">
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">Abnormal Findings</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-3">{findings.some((f) => f.status !== 'normal') ? 'Abnormal Findings' : 'Laboratory Results'}</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {findings.map((f) => (
               <div
@@ -490,7 +531,9 @@ export default function ResultsPage({ navigate }: Props) {
                     ? 'border-red-100'
                     : f.status === 'low'
                       ? 'border-blue-100'
-                      : 'border-emerald-100'
+                      : f.status === 'near_optimal'
+                        ? 'border-amber-100'
+                        : 'border-emerald-100'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
@@ -498,7 +541,7 @@ export default function ResultsPage({ navigate }: Props) {
                   <StatusBadge status={f.status} />
                 </div>
                 <p className={`text-2xl font-bold mb-0.5 ${
-                  f.status === 'high' ? 'text-red-600' : f.status === 'low' ? 'text-blue-600' : 'text-emerald-600'
+                  f.status === 'high' ? 'text-red-600' : f.status === 'low' ? 'text-blue-600' : f.status === 'near_optimal' ? 'text-amber-600' : 'text-emerald-600'
                 }`}>
                   {f.value}
                 </p>
@@ -507,7 +550,7 @@ export default function ResultsPage({ navigate }: Props) {
                 <div className="mt-3 h-1 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${
-                      f.status === 'high' ? 'bg-red-400 w-4/5' : f.status === 'low' ? 'bg-blue-400 w-2/5' : 'bg-emerald-400 w-3/5'
+                      f.status === 'high' ? 'bg-red-400 w-4/5' : f.status === 'low' ? 'bg-blue-400 w-2/5' : f.status === 'near_optimal' ? 'bg-amber-400 w-4/5' : 'bg-emerald-400 w-3/5'
                     }`}
                   />
                 </div>

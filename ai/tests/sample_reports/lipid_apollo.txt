@@ -1,0 +1,21 @@
+Apollo Diagnostics
+Patient Name: Priya Sharma
+Age: 52/Female    Ref No: APL-2026-15482
+Date: 12-Aug-2026
+
+==================== LIPID PROFILE ====================
+Parameter              Value      Units        Reference Range
+Total Cholesterol      268        mg/dL        0 - 200 mg/dL
+HDL Cholesterol        42         mg/dL        > 40 mg/dL
+LDL Cholesterol        192        mg/dL        < 100 mg/dL
+Triglycerides          210        mg/dL        < 150 mg/dL
+VLDL                   42         mg/dL        5 - 40 mg/dL
+
+==================== LIVER FUNCTION TEST ====================
+Parameter              Value      Units        Reference Range
+Total Protein          7.2        g/dL         6.0 - 8.3 g/dL
+Albumin                4.1        g/dL         3.5 - 5.0 g/dL
+SGOT (AST)             52         U/L          0 - 40 U/L
+SGPT (ALT)             78         U/L          0 - 45 U/L
+ALP                    110        U/L          44 - 147 U/L
+Total Bilirubin        1.1        mg/dL        0.1 - 1.2 mg/dL

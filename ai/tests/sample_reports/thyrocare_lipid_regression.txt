@@ -1,0 +1,17 @@
+Thyrocare Laboratories Ltd.
+Plot No. 456, Health Enclave
+Patient: Ramesh Kumar, Male, 48 yrs
+Ref No: TC-2026-A1847
+Regn/Bar Code: 1234-5678
+Date: 12-Aug-2026 11:30 AM
+Collected: 12-Aug-2026 08:00 AM
+Reported: 12-Aug-2026 05:30 PM
+
+==================== LIPID PROFILE ====================
+Test Name                    Result     Units        Bio. Ref. Range
+Total Cholesterol            186        mg/dL        0-200
+HDL CHOLESTEROL - DIRECT     67         mg/dL        40-60
+LDL Cholesterol              113        mg/dL        <100
+Triglycerides                42         mg/dL        
+Total Chol/HDL Ratio         2.8        --           <5.0
+LDL/HDL Ratio                1.7        --           <3.5

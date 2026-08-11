@@ -1,0 +1,12 @@
+Vijaya Diagnostics
+Patient: Amit Patel, Age: 38, Male
+Regn No: VDZ-2026-08-15-037
+Date: 15-Aug-2026
+
+==================== DIABETES PANEL ====================
+Test                        Result    Units    Reference Range
+Fasting Blood Sugar         142       mg/dL    70 - 99 mg/dL
+PPBS                        210       mg/dL    < 140 mg/dL
+HbA1c                       8.4       %          4.0 - 5.6 %
+Fasting Insulin             18.5      mu IU/mL   2 - 25 mu IU/mL
+HOMA-IR                     4.8       --         < 2.0

@@ -2,7 +2,7 @@ export interface Finding {
   parameter: string
   value: string
   reference: string
-  status: 'high' | 'low' | 'normal'
+  status: 'high' | 'low' | 'normal' | 'near_optimal'
 }
 
 export interface Reference {

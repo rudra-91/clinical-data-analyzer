@@ -1,0 +1,23 @@
+SRL Diagnostics
+Patient: Meena Tiwari, F, 35 yrs
+UID: SRL-2026-B742
+Date: 16-Aug-2026 09:15
+
+==================== COMPLETE CHECKUP ====================
+Test Name                    Value       Units        Ref. Range
+WBC                          13.5        10^3/uL      4 - 11
+Hemoglobin (Hb)              9.8         g/dL         12 - 16
+Platelet Count               480         10^3/uL      150 - 450
+Total Cholesterol            285         mg/dL        0 - 200
+HDL Cholesterol              32          mg/dL        > 40
+LDL Cholesterol              210         mg/dL        < 100
+Triglycerides                320         mg/dL        
+Fasting Blood Sugar          155         mg/dL        70 - 99
+PPBS                         248         mg/dL        < 140
+HbA1c                        9.1         %            < 5.7
+SGPT (ALT)                   95          U/L          0 - 45
+SGOT (AST)                   68          U/L          0 - 40
+Serum Creatinine             1.8         mg/dL        0.6 - 1.2
+Blood Urea                   55          mg/dL        7 - 20
+Blood Pressure               158/98      mmHg         < 120/80
+Pulse                        92          bpm          60 - 100

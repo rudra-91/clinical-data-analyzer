@@ -1,17 +1,11 @@
+export type BiomarkerValue = string | number | undefined
+
 export interface ExtractedValues {
-  blood_pressure?: string
-  fasting_sugar?: number
-  hba1c?: number
-  hemoglobin?: number
-  cholesterol?: number
+  [key: string]: BiomarkerValue
 }
 
 export interface AnalysisResult {
-  blood_pressure?: 'high' | 'low' | 'normal'
-  fasting_sugar?: 'high' | 'low' | 'normal'
-  hba1c?: 'diabetes_range' | 'prediabetes_range' | 'normal'
-  hemoglobin?: 'high' | 'low' | 'normal'
-  cholesterol?: 'high' | 'borderline' | 'normal'
+  [key: string]: string
 }
 
 export interface AnalyzeResponseData {
@@ -19,10 +13,18 @@ export interface AnalyzeResponseData {
   analysis: AnalysisResult
   summary: string
   sources: string[]
+  debug?: {
+    total_chars: number
+    matched_count: number
+    failed_patterns: string[]
+    has_text: boolean
+    unrecognized_lines: string[]
+  }
 }
 
 export interface AnalyzeResponse {
   success: boolean
+  status?: "success" | "partial_success"
   data: AnalyzeResponseData
 }
 

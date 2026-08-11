@@ -1,0 +1,17 @@
+Dr. Lal PathLabs
+Patient: VenkatRaman, Age: 48, Male
+Lab ID: DLP-2026-4885
+Date: 10-Aug-2026
+
+==================== THYROID PROFILE ====================
+Test                        Result    Units    Reference Range
+TSH                         8.5       mIU/L    0.40 - 4.00 mIU/L
+Free T3 (FT3)               2.8       pg/mL    2.3 - 4.2 pg/mL
+Free T4 (FT4)               1.9       ng/dL    0.8 - 1.8 ng/dL
+T3                          120       ng/dL    70 - 180 ng/dL
+T4                          8.5       ug/dL    4.5 - 11.5 ug/dL
+
+==================== VITAL SIGNS ====================
+Blood Pressure            142/92      mmHg      < 120/80 mmHg
+Pulse                     84          bpm       60 - 100 bpm
+SpO2                      96          %         >= 95 %

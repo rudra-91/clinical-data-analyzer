@@ -1,0 +1,24 @@
+Thyrocare Laboratories
+Patient: Rajesh Kumar, Male, 45 yrs
+Date: 15-Aug-2026 10:30 AM
+Lab No: TC20260815001
+
+==================== CBC ====================
+Test Name                    Result     Units        Bio. Ref. Range
+WBC Count                    7.2        10^3/uL      4.0-11.0
+RBC Count                    4.8        million/uL   4.5-5.9
+Hemoglobin (Hb)              13.2       g/dL         13.5-17.5
+Hematocrit (Hct)             39.5       %            36-50
+MCV                          82.5       fL           80-100
+MCH                          27.4       pg           27-33
+MCHC                         33.3       g/dL         32-36
+RDW                          12.8       %            11.5-14.5
+Platelet Count               245        10^3/uL      150-450
+MPV                          9.2        fL           7.5-11.5
+
+==================== LIPID PROFILE ====================
+Test Name                    Result     Units        Bio. Ref. Range
+Total Cholesterol            245.0      mg/dL        0-200
+Cholesterol - HDL            38.0       mg/dL        >40
+Cholesterol - LDL            168.0      mg/dL        <100
+Triglycerides                180.0      mg/dL        

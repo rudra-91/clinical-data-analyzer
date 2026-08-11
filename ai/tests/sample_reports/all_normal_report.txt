@@ -1,0 +1,20 @@
+MediCore Diagnostics
+Patient: Priya Sharma, Female, 34 yrs
+Regn/Bar Code: 8765-4321
+Date: 10-Aug-2026
+
+==================== LIPID PROFILE ====================
+Total Cholesterol            155        mg/dL        0-200
+HDL CHOLESTEROL - DIRECT     52         mg/dL        40-60
+LDL Cholesterol              85         mg/dL        <100
+Triglycerides                110        mg/dL
+
+=================== BLOOD SUGAR ===================
+Fasting Blood Sugar          88         mg/dL        70-99
+
+=================== THYROID ===================
+TSH                          2.1        mIU/L        0.4-4.0
+
+=================== CBC ===================
+Hemoglobin                   14.2       g/dL         13.5-17.5
+WBC Count                    6.5        10^3/uL      4.0-11.0

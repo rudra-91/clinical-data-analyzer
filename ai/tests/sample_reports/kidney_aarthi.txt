@@ -1,0 +1,14 @@
+Aarthi Scans & Diagnostics
+Patient: Sunita Reddy, Female, 55 yrs
+MRI/Pathology Regn No: AAI-2026-22184
+Date: 14-Aug-2026
+
+==================== KIDNEY FUNCTION TEST ====================
+Test                        Result      Units      Reference Range
+Blood Urea                  42          mg/dL      7 - 20 mg/dL
+Serum Creatinine            1.4         mg/dL      0.6 - 1.2 mg/dL
+eGFR (CKD-EPI)              58          mL/min     > 60 mL/min
+BUN                         32          mg/dL      6 - 24 mg/dL
+Sodium (Na+)                138         mmol/L     135 - 145 mmol/L
+Potassium (K+)              4.8         mmol/L     3.5 - 5.1 mmol/L
+Chloride (Cl-)              102         mmol/L     96 - 106 mmol/L
